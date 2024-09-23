@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 import os
 import socket
+from typing import List, Optional
 
 load_dotenv()
 
@@ -15,13 +16,21 @@ class Product(BaseModel):
     stock_level: int
     price: float
 
+class ExternalProduct(BaseModel):
+    id: int
+    title: str
+    price: float
+    description: Optional[str] = None
+    category: Optional[str] = None
+    image: Optional[str] = None
+
 @app.get("/fetch_products")
 async def fetch_products():
     api_url = os.getenv('API_URL', 'https://fakestoreapi.com')
     products_url = f'{api_url}/products'
     response = requests.get(products_url)
     if response.status_code == 200:
-        products: list[Product] = response.json()
+        products: List[ExternalProduct] = response.json()
         for product in products:
             print(product)
         return {"message": "Products fetched and added to inventory successfully."}
