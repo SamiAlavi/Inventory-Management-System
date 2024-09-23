@@ -19,14 +19,17 @@ class Product(BaseModel):
     product_name: str
     stock_level: int
     price: float
-    description: Optional[str] = None
-    category: Optional[str] = None
-    image: Optional[str] = None
+
+    def __getitem__(self, item):
+        return getattr(self, item)
 
 class ExternalProduct(BaseModel):
     id: int
     title: str
     price: float
+    description: Optional[str] = None
+    category: Optional[str] = None
+    image: Optional[str] = None
 
     def __getitem__(self, item):
         return getattr(self, item)
@@ -70,6 +73,19 @@ async def get_products():
     ]
     
     return product_list
+
+@app.post("/product")
+async def add_product(product: Product):
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO Inventory (product_name, stock_level, price)
+        VALUES (?, ?, ?)''',
+        (product.product_name, product.stock_level, product.price)
+    )
+    conn.commit()
+    conn.close()
+    return {"message": "Product added successfully."}
 
 @app.get("/")
 async def home():
