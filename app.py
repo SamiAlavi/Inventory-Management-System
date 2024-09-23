@@ -5,7 +5,8 @@ from dotenv import load_dotenv
 import os
 import sqlite3
 import socket
-from typing import List, Optional, TypedDict
+from pydantic import BaseModel
+from typing import List, Optional
 
 load_dotenv()
 
@@ -14,15 +15,21 @@ api_url = os.getenv('API_URL', 'https://fakestoreapi.com')
 
 app = FastAPI()
 
-class Product(TypedDict):
+class Product(BaseModel):
     product_name: str
     stock_level: int
     price: float
+    description: Optional[str] = None
+    category: Optional[str] = None
+    image: Optional[str] = None
 
-class ExternalProduct(TypedDict):
+class ExternalProduct(BaseModel):
     id: int
     title: str
     price: float
+
+    def __getitem__(self, item):
+        return getattr(self, item)
 
 def connect_db():
     conn = sqlite3.connect(db_name)
