@@ -1,38 +1,53 @@
 import uvicorn
 from fastapi import FastAPI, HTTPException
 import requests
-from pydantic import BaseModel
 from dotenv import load_dotenv
 import os
+import sqlite3
 import socket
-from typing import List, Optional
+from typing import List, Optional, TypedDict
 
 load_dotenv()
 
+db_name = os.getenv('DATABASE_NAME', 'default.db')
+api_url = os.getenv('API_URL', 'https://fakestoreapi.com')
+
 app = FastAPI()
 
-class Product(BaseModel):
+class Product(TypedDict):
     product_name: str
     stock_level: int
     price: float
 
-class ExternalProduct(BaseModel):
+class ExternalProduct(TypedDict):
     id: int
     title: str
     price: float
-    description: Optional[str] = None
-    category: Optional[str] = None
-    image: Optional[str] = None
+    description: Optional[str]
+    category: Optional[str]
+    image: Optional[str]
 
+def connect_db():
+    conn = sqlite3.connect(db_name)
+    return conn
+    
 @app.get("/fetch_products")
 async def fetch_products():
-    api_url = os.getenv('API_URL', 'https://fakestoreapi.com')
     products_url = f'{api_url}/products'
     response = requests.get(products_url)
     if response.status_code == 200:
+        conn = connect_db()
+        cursor = conn.cursor()
         products: List[ExternalProduct] = response.json()
         for product in products:
-            print(product)
+            stock_level = 100
+            cursor.execute('''
+                INSERT OR IGNORE INTO Inventory (product_id, product_name, stock_level, price) 
+                VALUES (?, ?, ?, ?)''',
+                (product['id'], product['title'], stock_level, product['price'])
+            )
+        conn.commit()
+        conn.close()
         return {"message": "Products fetched and added to inventory successfully."}
     else:
         raise HTTPException(status_code=400, detail="Failed to fetch products from API")
