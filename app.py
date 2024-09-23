@@ -143,6 +143,25 @@ async def train_model():
         "r2_score": r2
     }
 
+@app.get("/predict_sales")
+async def predict_sales(product_id: int):
+    try:
+        model = joblib.load(sales_prediction_model_path)
+    except:
+        raise HTTPException(status_code=500, detail="Model not found. Please train the model first.")
+    
+    day = datetime.now().day
+    month = datetime.now().month
+
+    input_data = pd.DataFrame({
+        'product_id': [product_id],
+        'day': [day],
+        'month': [month]
+    })
+
+    predicted_sales = model.predict(input_data)
+
+    return {"predicted_sales": predicted_sales[0]}
 
 @app.get("/")
 async def home():
