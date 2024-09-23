@@ -2,7 +2,6 @@ import sqlite3
 from dotenv import load_dotenv
 import os
 
-# Load environment variables from the .env file
 load_dotenv()
 
 def execute_sql_file(filename: str) -> None:
