@@ -9,11 +9,17 @@ from pydantic import BaseModel
 from typing import List, Optional
 import random
 from datetime import datetime, timedelta
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
+import joblib
 
 load_dotenv()
 
 db_name = os.getenv('DATABASE_NAME', 'default.db')
 api_url = os.getenv('API_URL', 'https://fakestoreapi.com')
+sales_prediction_model_path = "sales_prediction_model.pkl"
 
 app = FastAPI()
 
@@ -114,6 +120,36 @@ async def generate_sales(sales_request: SalesRequest):
     conn.commit()
     conn.close()
     return {"message": f"{num_sales} sales transactions generated."}
+
+@app.get("/train_model")
+async def train_model():
+    conn = connect_db()
+    sales_data = pd.read_sql_query("SELECT * FROM Sales", conn)
+    
+    sales_data['sale_date'] = pd.to_datetime(sales_data['sale_date'])
+    sales_data['day'] = sales_data['sale_date'].dt.day
+    sales_data['month'] = sales_data['sale_date'].dt.month
+
+    X = sales_data[['product_id', 'day', 'month']]
+    y = sales_data['quantity_sold']
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    model = LinearRegression()
+    model.fit(X_train, y_train)
+
+    y_pred = model.predict(X_test)
+    mse = mean_squared_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+
+    joblib.dump(model, sales_prediction_model_path)
+
+    return {
+        "message": "Model trained and saved.",
+        "mean_squared_error": mse,
+        "r2_score": r2
+    }
+
 
 @app.get("/")
 async def home():
