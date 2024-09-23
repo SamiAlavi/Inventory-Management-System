@@ -23,9 +23,6 @@ class ExternalProduct(TypedDict):
     id: int
     title: str
     price: float
-    description: Optional[str]
-    category: Optional[str]
-    image: Optional[str]
 
 def connect_db():
     conn = sqlite3.connect(db_name)
@@ -51,6 +48,21 @@ async def fetch_products():
         return {"message": "Products fetched and added to inventory successfully."}
     else:
         raise HTTPException(status_code=400, detail="Failed to fetch products from API")
+
+@app.get("/products", response_model=List[ExternalProduct])
+async def get_products():
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT product_id, product_name, stock_level, price FROM Inventory")
+    products = cursor.fetchall()
+    conn.close()
+
+    product_list = [
+        {"id": product[0], "title": product[1], "stock_level": product[2], "price": product[3]}
+        for product in products
+    ]
+    
+    return product_list
 
 @app.get("/")
 async def home():
