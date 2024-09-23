@@ -41,12 +41,6 @@ class ExternalProduct(BaseModel):
 
     def __getitem__(self, item):
         return getattr(self, item)
-    
-class SalesRequest(BaseModel):
-    num_sales: int = 100
-
-    def __getitem__(self, item):
-        return getattr(self, item)
 
 def connect_db():
     conn = sqlite3.connect(db_name)
@@ -102,8 +96,7 @@ async def add_product(product: Product):
     return {"message": "Product added successfully."}
 
 @app.post("/generate_sales")
-async def generate_sales(sales_request: SalesRequest):
-    num_sales = sales_request.num_sales
+async def generate_sales(num_sales: int = 100):
     conn = connect_db()
     cursor = conn.cursor()
     
