@@ -7,6 +7,8 @@ import sqlite3
 import socket
 from pydantic import BaseModel
 from typing import List, Optional
+import random
+from datetime import datetime, timedelta
 
 load_dotenv()
 
@@ -30,6 +32,12 @@ class ExternalProduct(BaseModel):
     description: Optional[str] = None
     category: Optional[str] = None
     image: Optional[str] = None
+
+    def __getitem__(self, item):
+        return getattr(self, item)
+    
+class SalesRequest(BaseModel):
+    num_sales: int = 100
 
     def __getitem__(self, item):
         return getattr(self, item)
@@ -86,6 +94,26 @@ async def add_product(product: Product):
     conn.commit()
     conn.close()
     return {"message": "Product added successfully."}
+
+@app.post("/generate_sales")
+async def generate_sales(sales_request: SalesRequest):
+    num_sales = sales_request.num_sales
+    conn = connect_db()
+    cursor = conn.cursor()
+    
+    for _ in range(num_sales):
+        product_id = random.randint(1, 20)
+        quantity_sold = random.randint(1, 5)
+        sale_date = datetime.now() - timedelta(days=random.randint(1, 30))
+        
+        cursor.execute('''
+            INSERT INTO Sales (product_id, sale_date, quantity_sold)
+            VALUES (?, ?, ?)''',
+            (product_id, sale_date, quantity_sold)
+        )
+    conn.commit()
+    conn.close()
+    return {"message": f"{num_sales} sales transactions generated."}
 
 @app.get("/")
 async def home():
